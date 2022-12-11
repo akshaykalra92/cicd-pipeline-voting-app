@@ -1,0 +1,35 @@
+# Docker
+# Build and push an image to Azure Container Registry
+
+trigger:
+  - master
+
+resources:
+  - repo: self
+
+variables:
+  - template: variables.yaml # Template reference
+
+pool:
+  vmImage: ${{ variables.vmImageName }}
+
+stages:
+    - template: ci.yaml
+      parameters:
+        repository: ${{ variables.imageRepository }}
+        dockerfile: ${{ variables.dockerfilePath }}
+        containerRegistry: ${{ variables.dockerRegistryServiceConnection }}
+        tag: ${{ variables.tag }}
+        file: ${{ variables.appname }}_${{ variables.tag }}_${{ variables.date }}
+        artifactName: ${{ variables.artifactName }}
+
+    - template: cd.yaml
+        parameters:
+          repository: ${{ variables.imageRepository }}
+          dockerRegistry: ${{ variables.dockerRegistry }}
+          containerRegistry: ${{ variables.containerRegistry }}
+          tag: ${{ variables.tag }}
+          file: ${{ variables.appname }}_${{ variables.tag }}_${{ variables.date }}
+          artifactName: ${{ variables.artifactName }}
+          imagePullSecret: ${{ variables.imagePullSecret }}
+          namespace: ${{ variables.namespace }}

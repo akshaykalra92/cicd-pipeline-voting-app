@@ -1,0 +1,70 @@
+# Template for CD
+
+parameters:
+  - name: imagePullSecret
+    displayName: Secret
+    type: string
+  - name: namespace
+    displayName: namespace
+    type: string
+  - name: dockerRegistry
+    displayName: dockerRegistry connection
+    type: string
+  - name: artifactName
+    displayName: artifact Name
+    type: string
+  - name: tag
+    displayName: docker tag
+    type: string
+  - name: repository
+    displayName: image repository
+    type: string
+  - name: containerRegistry
+    displayName: ServiceConnection
+    type: string
+  - name: file
+    displayName: manifest yaml file
+    type: string
+
+stages:
+  - stage: 'Deploy'
+    displayName: 'Deploying pipeline to AKS cluster'
+    jobs:
+      - deployment: Deploy
+        displayName:  'Deploy job'
+        environment: 'aks_deploy.appdeployment'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: DownloadPipelineArtifact@2
+                  inputs:
+                    artifact: ${{ parameters.artifactName }}
+                    downloadPath: '$(System.ArtifactsDirectory)/manifests'
+                - task: KubernetesManifest@0
+                    displayName: Create imagePullSecret
+                    inputs:
+                      action: createSecret
+                      secretName: ${{ parameters.imagePullSecret }}
+                      namespace: ${{ parameters.namespace }}
+                      dockerRegistryEndpoint: ${{ parameters.dockerRegistry }}
+                - task: KubernetesManifest@0
+                    displayName: Deploy to Kubernetes cluster
+                    inputs:
+                      action: deploy
+                      namespace: ${{ parameters.namespace }}
+                      manifests: |
+                        $(System.ArtifactsDirectory)/manifests/${{ parameters.file }}
+                      imagePullSecrets: |
+                        ${{ parameters.imagePullSecret }}
+                      containers: |
+                        ${{ parameters.containerRegistry }}/${{ parameters.repository }}:${{ parameters.tag }}
+
+
+      - task: KubernetesManifest@0
+        inputs:
+          action: 'createSecret'
+          namespace: 'default'
+
+          secretName: 'voting_secret'
+          dockerRegistryEndpoint: 'azpipeline'
