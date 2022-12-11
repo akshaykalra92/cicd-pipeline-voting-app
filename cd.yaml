@@ -59,12 +59,3 @@ stages:
                         ${{ parameters.imagePullSecret }}
                       containers: |
                         ${{ parameters.containerRegistry }}/${{ parameters.repository }}:${{ parameters.tag }}
-
-
-      - task: KubernetesManifest@0
-        inputs:
-          action: 'createSecret'
-          namespace: 'default'
-
-          secretName: 'voting_secret'
-          dockerRegistryEndpoint: 'azpipeline'
